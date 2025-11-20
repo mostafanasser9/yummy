@@ -1,0 +1,449 @@
+/* ========================================
+   YUMMY - MAIN STYLESHEET
+   ======================================== */
+
+/* ========== CSS CUSTOM PROPERTIES (COLOR PALETTE) ========== */
+:root {
+  /* Brand Colors */
+  --yummy-yellow: #fcca11;
+  --yummy-yellow-hover: #e6b800;
+  --yummy-yellow-active: #cc9f00;
+
+  /* Dark Mode Background Colors */
+  --bg-dark-primary: #0d0d0d;
+  --bg-dark-secondary: #1a1a1a;
+  --bg-dark-tertiary: #2a2a2a;
+  --bg-dark-card: #1f1f1f;
+
+  /* Text Colors */
+  --text-white: #ffffff;
+  --text-light-grey: #e0e0e0;
+  --text-medium-grey: #b0b0b0;
+  --text-dark-grey: #808080;
+
+  /* Accent & Overlay Colors */
+  --overlay-dark: rgba(0, 0, 0, 0.8);
+  --overlay-light: rgba(255, 255, 255, 0.1);
+  --border-grey: #3a3a3a;
+
+  /* Status Colors */
+  --success-green: #28a745;
+  --danger-red: #dc3545;
+  --info-blue: #17a2b8;
+}
+
+/* ========== GLOBAL STYLES ========== */
+
+/* Body - Dark gradient background */
+body {
+  background: linear-gradient(120deg, #000000, #2f2f2f);
+  background-attachment: fixed; /* Keep gradient fixed during scroll */
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: var(--text-light-grey);
+  min-height: 100vh;
+}
+
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+  background: #000000; /* Fallback solid black for over-scroll areas */
+}
+
+/* ========== LOADING SPINNER ========== */
+
+/* Initial full-screen loading spinner */
+.loading-spinner {
+  position: absolute;
+  z-index: 999; /* High z-index to appear above all content */
+  background-color: var(--bg-dark-primary);
+  color: var(--yummy-yellow);
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Fade-out animation when loading is complete */
+.loading-spinner.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none; /* Prevent interaction when hidden */
+}
+
+/* Inner loading screens for sections */
+.inner-loading-screen {
+  background-color: var(--overlay-dark);
+  z-index: 100;
+}
+
+/* Loading spinner animation */
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid var(--yummy-yellow);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== SIDE NAVIGATION MENU ========== */
+
+/* Main side menu container */
+.side-menu {
+  width: 280px;
+  background-color: #ffffff;
+  z-index: 10; /* Ensure menu appears above main content */
+  border-right: 1px solid #e0e0e0;
+}
+
+/* Menu icon for toggling sidebar */
+.icon-menu,
+#menuToggle {
+  font-size: 32px;
+  cursor: pointer;
+  color: #000000;
+  transition: color 0.3s ease;
+}
+
+.icon-menu:hover,
+#menuToggle:hover {
+  color: var(--yummy-yellow);
+}
+
+/* Navigation links styling */
+.nav-link {
+  color: #333333;
+  padding: 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  transition: color 0.3s ease, transform 0.3s ease;
+  border-left: 3px solid transparent;
+  padding-left: 1rem;
+}
+
+/* Navigation link hover and focus states */
+.nav-link:hover {
+  color: var(--yummy-yellow);
+  transform: translateX(5px);
+  border-left-color: var(--yummy-yellow);
+}
+
+.nav-link.active {
+  color: var(--yummy-yellow);
+  border-left-color: var(--yummy-yellow);
+}
+
+/* Remove default focus outline */
+.nav-link:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
+/* Logo image size */
+.logo {
+  width: 50px;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.1);
+}
+
+/* Social media icons in navigation footer */
+.icons a {
+  text-decoration: none; /* Remove underline from links */
+}
+
+.icons i {
+  color: #333333;
+  font-size: 1.2rem;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.icons a:hover i {
+  color: var(--yummy-yellow);
+  transform: scale(1.2);
+}
+
+/* Navigation header (contains logo and menu toggle) */
+.nav-header {
+  background-color: #ffffff;
+  color: #333333;
+  border-right: 1px solid #e0e0e0;
+}
+
+/* Navigation footer text */
+.nav-footer p {
+  color: #666666;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Navigation tab (black background section) */
+.nav-tab {
+  background-color: #000000 !important;
+}
+
+/* ========== MEAL CARDS & SECTIONS ========== */
+
+/* Meal card styling */
+.meal {
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--bg-dark-card);
+}
+
+.meal:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(252, 202, 17, 0.3);
+}
+
+/* Meal images */
+.meal img {
+  transition: transform 0.5s ease;
+}
+
+.meal:hover img {
+  transform: scale(1.05);
+}
+
+/* Overlay layer that appears on meal card hover */
+.meal-layer {
+  width: 100%;
+  height: 100%;
+  background-color: var(--overlay-dark);
+  top: 100%; /* Initially positioned below the card */
+  transition: 0.5s; /* Smooth slide-up animation */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  text-transform: capitalize;
+}
+
+.meal-layer h3 {
+  color: var(--yummy-yellow);
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.meal-layer p {
+  color: var(--text-light-grey);
+  font-size: 0.9rem;
+}
+
+/* Slide overlay up on hover */
+.meal:hover .meal-layer {
+  top: 0;
+}
+
+/* Area and ingredient cards */
+.area,
+.ingredient {
+  background-color: var(--bg-dark-card);
+  padding: 2rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-grey);
+}
+
+.area:hover,
+.ingredient:hover {
+  background-color: var(--bg-dark-tertiary);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(252, 202, 17, 0.2);
+  border-color: var(--yummy-yellow);
+}
+
+/* Large icons for area and ingredients sections */
+.icon-area,
+.icon-ingredients {
+  font-size: 4em;
+  color: var(--yummy-yellow);
+  margin-bottom: 1rem;
+}
+
+.area h3,
+.ingredient h3 {
+  color: var(--text-white);
+  font-weight: 600;
+}
+
+.ingredient p {
+  color: var(--text-medium-grey);
+  font-size: 0.9rem;
+}
+
+/* ========== SEARCH SECTION ========== */
+
+/* Search input styling */
+.search-input.form-control {
+  background-color: var(--bg-dark-card);
+  border: 2px solid var(--border-grey);
+  color: var(--text-white);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-input.form-control:focus {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--yummy-yellow);
+  color: var(--text-white);
+  box-shadow: 0 0 0 0.2rem rgba(252, 202, 17, 0.25);
+  outline: none;
+}
+
+/* Placeholder text color for search inputs */
+.search-input.form-control::placeholder {
+  color: var(--text-dark-grey);
+}
+
+/* ========== MEAL DETAILS SECTION ========== */
+
+/* Meal details headings */
+#mealsDetails h2,
+#mealsDetails h3 {
+  color: var(--text-white);
+  font-weight: 600;
+}
+
+#mealsDetails p {
+  color: var(--text-light-grey);
+  line-height: 1.8;
+}
+
+/* Recipe ingredients and tags lists */
+#mealsDetails .alert-info {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--yummy-yellow);
+  color: var(--yummy-yellow);
+  font-weight: 500;
+}
+
+#mealsDetails .alert-danger {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--danger-red);
+  color: var(--danger-red);
+  font-weight: 500;
+}
+
+/* ========== BUTTONS ========== */
+
+/* Primary yellow buttons */
+.btn-outline-danger {
+  color: var(--yummy-yellow);
+  border-color: var(--yummy-yellow);
+  background-color: transparent;
+  font-weight: 600;
+  padding: 0.5rem 2rem;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--yummy-yellow);
+  border-color: var(--yummy-yellow);
+  color: var(--bg-dark-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(252, 202, 17, 0.4);
+}
+
+.btn-outline-danger:active {
+  background-color: var(--yummy-yellow-active);
+  border-color: var(--yummy-yellow-active);
+  transform: translateY(0);
+}
+
+.btn-outline-danger:disabled {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--text-dark-grey);
+  color: var(--text-dark-grey);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Success button (source link) */
+.btn-success {
+  background-color: var(--success-green);
+  border-color: var(--success-green);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Danger button (YouTube link) */
+.btn-danger {
+  background-color: var(--danger-red);
+  border-color: var(--danger-red);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* ========== CONTACT FORM ========== */
+
+/* Contact form inputs */
+#contactUs .form-control {
+  background-color: var(--bg-dark-card);
+  border: 2px solid var(--border-grey);
+  color: var(--text-white);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#contactUs .form-control:focus {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--yummy-yellow);
+  color: var(--text-white);
+  box-shadow: 0 0 0 0.2rem rgba(252, 202, 17, 0.25);
+  outline: none;
+}
+
+#contactUs .form-control::placeholder {
+  color: var(--text-dark-grey);
+}
+
+/* Validation alerts */
+#contactUs .alert-danger {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--danger-red);
+  color: var(--danger-red);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ========== UTILITY CLASSES ========== */
+
+/* Cursor pointer for clickable elements */
+.cursor-pointer {
+  cursor: pointer;
+}

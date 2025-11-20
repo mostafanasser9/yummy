@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Meta Tags -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="./imgs/logo.png" type="image/x-icon" />
+    <title>Yummy - Route JS Exam</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/all.min.css" />
+    <link rel="stylesheet" href="./css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./css/media.css" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <!-- ========== INITIAL LOADING SPINNER ========== -->
+    <!-- Full-screen loading spinner displayed on page load -->
+    <div
+      class="loading-spinner position-fixed top-0 start-0 end-0 bottom-0 bg-black justify-content-center align-items-center"
+    >
+      <span class="fa fa-spinner fa-spin fa-5x"></span>
+    </div>
+
+    <!-- ========== SIDE NAVIGATION MENU ========== -->
+    <div class="side-menu min-vh-100 position-fixed top-0 d-flex bg-white">
+      <!-- Navigation Links Panel (Black Background) -->
+      <div
+        class="nav-tab d-flex flex-column justify-content-between min-vh-100 bg-black text-white p-4"
+      >
+        <!-- Navigation Links -->
+        <ul class="nav flex-column">
+          <li class="nav-item position-relative">
+            <a class="nav-link active" href="#search">Search</a>
+          </li>
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="#categories">Categories</a>
+          </li>
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="#area">Area</a>
+          </li>
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="#ingredients">Ingredients</a>
+          </li>
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="#contactUs">Contact Us</a>
+          </li>
+        </ul>
+
+        <!-- Navigation Footer (Social Icons & Copyright) -->
+        <div class="nav-footer">
+          <div class="icons">
+            <a href="#" class="me-1">
+              <i class="fa-brands fa-facebook-f text-white"></i>
+            </a>
+            <a href="#" class="me-1">
+              <i class="fa-brands fa-twitter text-white"></i>
+            </a>
+            <a href="#" class="me-1">
+              <i class="fa-solid fa-globe text-white"></i>
+            </a>
+          </div>
+          <div class="footer">
+            <p>
+              Copyright <br />
+              Mostafa Nasser © 2025 All Rights <br />Reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Header (Logo & Menu Toggle) -->
+      <div
+        class="nav-header d-flex flex-column justify-content-between py-4 text-center px-2"
+      >
+        <!-- Logo -->
+        <a href="index.html">
+          <img class="logo d-block" src="./imgs/logo.png" alt="Yummy Logo" />
+        </a>
+
+        <!-- Menu Toggle Button -->
+        <i id="menuToggle" class="fa-solid fa-bars fs-1"></i>
+
+        <!-- Additional Navigation Icons -->
+        <div>
+          <a href="#" class="d-block">
+            <i class="fa-solid fa-globe text-black"></i>
+          </a>
+          <a href="#" class="d-block">
+            <i class="fa-solid fa-share-nodes text-black"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MEALS SECTION ========== -->
+    <!-- Main section displaying meal cards -->
+    <section id="meals" class="min-vh-100 ms-auto position-relative">
+      <!-- Loading Screen (Shown during data fetch) -->
+      <div
+        class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+      >
+        <span class="loader"></span>
+      </div>
+
+      <!-- Meals Data Container -->
+      <div class="container d-flow-root">
+        <div id="dataMeals" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== MEAL DETAILS SECTION ========== -->
+    <!-- Detailed view of a single selected meal -->
+    <section id="mealsDetails" class="min-vh-100 ms-auto position-relative">
+      <!-- Loading Screen (Shown during data fetch) -->
+      <div
+        class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+      >
+        <span class="loader"></span>
+      </div>
+
+      <!-- Meal Details Container -->
+      <div class="container d-flow-root">
+        <div id="dataMealsDetails" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== SEARCH SECTION ========== -->
+    <!-- Search meals by name or first letter -->
+    <section id="search" class="ms-auto">
+      <!-- Search Input Fields -->
+      <div class="container d-flow-root">
+        <div class="row py-4 g-4">
+          <!-- Search by Name -->
+          <div class="col-md-6">
+            <input
+              id="searchByNameInput"
+              class="search-input form-control bg-transparent text-white"
+              type="text"
+              placeholder="Search By Name"
+            />
+          </div>
+
+          <!-- Search by First Letter (max 1 character) -->
+          <div class="col-md-6">
+            <input
+              id="searchByFLetterInput"
+              class="search-input form-control bg-transparent text-white"
+              type="text"
+              placeholder="Search By First Letter"
+              maxlength="1"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Results Container -->
+      <div class="container d-flow-root position-relative min-vh-100">
+        <!-- Loading Screen (Shown during search) -->
+        <div
+          class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+        >
+          <span class="loader"></span>
+        </div>
+
+        <!-- Search Results -->
+        <div id="dataSearch" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== CATEGORIES SECTION ========== -->
+    <!-- Display meal categories -->
+    <section id="categories" class="min-vh-100 ms-auto position-relative">
+      <!-- Loading Screen (Shown during data fetch) -->
+      <div
+        class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+      >
+        <span class="loader"></span>
+      </div>
+
+      <!-- Categories Container -->
+      <div class="container d-flow-root">
+        <div id="dataCategories" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== AREA SECTION ========== -->
+    <!-- Display meals by country/area -->
+    <section id="area" class="min-vh-100 ms-auto position-relative">
+      <!-- Loading Screen (Shown during data fetch) -->
+      <div
+        class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+      >
+        <span class="loader"></span>
+      </div>
+
+      <!-- Area Container -->
+      <div class="container d-flow-root">
+        <div id="dataArea" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== INGREDIENTS SECTION ========== -->
+    <!-- Display meal ingredients -->
+    <section id="ingredients" class="min-vh-100 ms-auto position-relative">
+      <!-- Loading Screen (Shown during data fetch) -->
+      <div
+        class="inner-loading-screen position-absolute top-0 start-0 end-0 bottom-0 justify-content-center align-items-center"
+      >
+        <span class="loader"></span>
+      </div>
+
+      <!-- Ingredients Container -->
+      <div class="container d-flow-root">
+        <div id="dataIngredients" class="row py-5 g-4"></div>
+      </div>
+    </section>
+
+    <!-- ========== CONTACT US SECTION ========== -->
+    <!-- Contact form with validation -->
+    <section id="contactUs" class="py-5 ms-auto">
+      <div
+        class="container min-vh-100 d-flex justify-content-center align-items-center"
+      >
+        <!-- Contact Form (Bootstrap validation) -->
+        <form
+          id="contactForm"
+          class="row g-3 g-md-4 needs-validation px-md-5 mx-md-5"
+          novalidate
+        >
+          <!-- Name Field -->
+          <div class="col-md-6">
+            <input
+              id="nameInput"
+              type="text"
+              class="form-control"
+              placeholder="Enter Your Name"
+            />
+            <div
+              id="nameAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Email Field -->
+          <div class="col-md-6">
+            <input
+              id="emailInput"
+              type="email"
+              class="form-control"
+              placeholder="Enter Your Email"
+            />
+            <div
+              id="emailAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Phone Field -->
+          <div class="col-md-6">
+            <input
+              id="phoneInput"
+              type="tel"
+              class="form-control"
+              placeholder="Enter Your Phone"
+            />
+            <div
+              id="phoneAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Age Field -->
+          <div class="col-md-6">
+            <input
+              id="ageInput"
+              type="number"
+              class="form-control"
+              placeholder="Enter Your Age"
+            />
+            <div
+              id="ageAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Password Field -->
+          <div class="col-md-6">
+            <input
+              id="passwordInput"
+              type="password"
+              class="form-control"
+              placeholder="Enter Your Password"
+            />
+            <div
+              id="passwordAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="col-md-6">
+            <input
+              id="repasswordInput"
+              type="password"
+              class="form-control"
+              placeholder="Repassword"
+            />
+            <div
+              id="repasswordAlert"
+              class="alert alert-danger w-100 my-2 d-none"
+            ></div>
+          </div>
+
+          <!-- Submit Button (Initially disabled until form is valid) -->
+          <div class="col-12">
+            <button
+              id="submitBtn"
+              class="btn btn-outline-danger d-block px-2 mx-auto mt-3"
+              disabled
+            >
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========== JAVASCRIPT FILES ========== -->
+    <script src="./js/bootstrap.bundle.min.js"></script>
+    <script src="./js/jquery-3.6.0.min.js"></script>
+    <script src="./js/main.js"></script>
+  </body>
+</html>
