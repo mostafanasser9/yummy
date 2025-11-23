@@ -1,937 +1,557 @@
-/* ========================================
-   YUMMY - MAIN JAVASCRIPT
-   Recipe search and display application
-   ======================================== */
+import {
+  fetchCategories,
+  fetchArea,
+  fetchIngredients,
+  fetchCategoryMeals,
+  fetchAreaMeals,
+  fetchIngredientsMeals,
+  fetchMealDetails,
+  fetchSearchByName,
+  fetchSearchByFLetter,
+} from "./get-meals-api.js";
 
-/* eslint-disable no-undef */
+let rowData = document.getElementById("rowData");
+let searchContainer = document.getElementById("searchContainer");
+let submitBtn;
 
-// ========== INITIAL PAGE LOAD ==========
-// Fade out loading spinner after 500ms, then remove it and restore scrolling
-document.addEventListener("DOMContentLoaded", function () {
-  const loader = document.querySelector(".loading-spinner");
-  if (!loader) return;
-
-  // Wait 500ms, then start the fade (CSS transition is 500ms)
-  setTimeout(() => {
-    loader.classList.add("fade-out");
-
-    // ========== APPLICATION VARIABLES ==========
-
-    // Sidebar menu state tracker
-    let sideToggle = false;
-
-    // ========== VALIDATION REGEX PATTERNS ==========
-    const nameRegex = /^[a-zA-Z]+$/; // Letters only
-    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/; // Standard email format
-    const phoneRegex =
-      /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/; // International phone format
-    const ageRegex = /^(0?[1-9]|[1-9][0-9]|[1][1-9][1-9]|200)$/; // Age 1-200
-    const passwordRegex = /^(?=.*\d)(?=.*[a-z])[0-9a-zA-Z]{8,}$/; // Min 8 chars, 1 letter, 1 number
-
-    // ========== DOCUMENT READY EVENT ==========
-    // Initialize the application when DOM is ready
-    $(document).ready(async () => {
-      closeSideMenu(0); // Close menu instantly on load
-      removeLoaderScreen(); // Remove loading screen
-      resizeSectionWidth(); // Adjust section widths for sidebar
+$(document).ready(() => {
+  searchByName("")
+    .then(() => {
+      $(".loading-spinner").fadeOut(500);
+      $("body").css("overflow", "visible");
+    })
+    .catch(() => {
+      $(".loading-spinner").fadeOut(500);
+      $("body").css("overflow", "visible");
     });
+});
 
-    // ========== WINDOW READY EVENT ==========
-    // Load initial meal data when window is fully loaded
-    $(window).ready(async () => {
-      const meals = (await getMealByName("")) || []; // Fetch all meals (empty search)
-      await displayMeals(meals);
-    });
+function openSideNav() {
+  $(".side-menu").animate(
+    {
+      left: 0,
+    },
+    500
+  );
 
-    // ========== WINDOW RESIZE EVENT ==========
-    // Adjust section widths when window is resized
-    $(window).on("resize", resizeSectionWidth);
+  $("#menuToggle").removeClass("fa-bars");
+  $("#menuToggle").addClass("fa-xmark");
 
-    // ========== MENU TOGGLE EVENT ==========
-    // Toggle sidebar menu open/close
-    $("#menuToggle").on("click", () => {
-      sideToggle ? openSideMenu() : closeSideMenu();
-    });
-
-    // ========== NAVIGATION LINK CLICK EVENTS ==========
-    // Handle navigation between different sections
-    $("a.nav-link[href^='#']").on("click", async (e) => {
-      e.preventDefault();
-      closeSideMenu(); // Close sidebar when navigating
-
-      const targetSection = $(e.currentTarget).attr("href");
-
-      // Hide all sections, show target section
-      $("section").fadeOut(0);
-      $(`section${targetSection}`).fadeIn(0, () => {
-        $("html, body").animate({ scrollTop: 0 }, 10); // Scroll to top
-      });
-
-      // Section-specific initialization
-      switch (targetSection) {
-        case "#search":
-          $("#search .inner-loading-screen").css({ display: "none" });
-          $("#searchByNameInput").val(""); // Clear search inputs
-          $("#searchByFLetterInput").val("");
-          $("#dataSearch").html("");
-          break;
-        case "#categories":
-          await displayCategories();
-          break;
-        case "#area":
-          await displayArea();
-          break;
-        case "#ingredients":
-          await displayIngredients();
-          break;
-        case "#contactUs":
-          handleInputsValidation(); // Setup form validation
-          break;
-        default:
-          break;
-      }
-    });
-
-    // ========== SEARCH INPUT EVENTS ==========
-
-    // Search by meal name (real-time search)
-    $("#searchByNameInput").on("keyup", async function () {
-      await searchByName($(this).val());
-    });
-
-    // Search by first letter (limited to 1 character)
-    $("#searchByFLetterInput").on("keyup", async function () {
-      const $this = $(this);
-
-      // Enforce max length of 1 character
-      if ($this.val().length > 1) {
-        $this.val($this.val().substring(0, 1));
-      }
-
-      await searchByFLetter($this.val() || "a"); // Default to 'a' if empty
-    });
-
-    // ========== UTILITY FUNCTIONS ==========
-
-    // ========== UTILITY FUNCTIONS ==========
-
-    /**
-     * Remove the initial loading screen with fade effect
-     */
-    function removeLoaderScreen() {
-      const $loader = $(".loading-spinner");
-      if (!$loader.length) return;
-
-      $loader.fadeOut(500, () => {
-        $("body").css("overflow", "visible"); // Restore scrolling
-      });
-    }
-
-    /**
-     * Open the sidebar menu with animation
-     */
-    function openSideMenu() {
-      $(".side-menu").animate({ left: 0 }, 500);
-      $("#menuToggle").removeClass("fa-bars").addClass("fa-xmark"); // Change icon to X
-
-      // Animate menu items with staggered delay
-      $(".nav .nav-item").each(function (index) {
-        $(this).animate({ opacity: 1, top: 0 }, (index + 5) * 100);
-      });
-
-      sideToggle = !sideToggle;
-    }
-
-    /**
-     * Close the sidebar menu with animation
-     * @param {number} duration - Animation duration in milliseconds (default: 500)
-     */
-    function closeSideMenu(duration = 500) {
-      const navTabWidth = $(".nav-tab").outerWidth();
-      $(".side-menu").animate({ left: -navTabWidth }, duration);
-      $("#menuToggle").removeClass("fa-xmark").addClass("fa-bars"); // Change icon to bars
-
-      // Hide menu items
-      $(".nav .nav-item").each(function () {
-        $(this).animate({ opacity: 0, top: 300 }, 500);
-      });
-
-      sideToggle = !sideToggle;
-    }
-
-    /**
-     * Adjust section widths based on sidebar width
-     * Ensures content doesn't overlap with fixed sidebar
-     */
-    function resizeSectionWidth() {
-      const navHeaderWidth = $(".nav-header").outerWidth();
-      const newWidth = $("body").width() - navHeaderWidth;
-      $("section").css({ maxWidth: newWidth, width: newWidth });
-    }
-
-    // ========== FORM VALIDATION FUNCTIONS ==========
-
-    /**
-     * Validate name input (letters only)
-     */
-    const validateName = (input, alertDiv) => {
-      const name = input.value.trim();
-
-      if (name === "") {
-        $(alertDiv).text("Username is required.").removeClass("d-none");
-      } else if (nameRegex.test(name)) {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      } else {
-        $(alertDiv)
-          .text("Special characters and numbers not allowed.")
-          .removeClass("d-none");
-      }
-
-      return false;
-    };
-
-    /**
-     * Validate email input
-     */
-    const validateEmail = (input, alertDiv) => {
-      const email = input.value.trim();
-
-      if (email === "") {
-        $(alertDiv).text("Email is required.").removeClass("d-none");
-      } else if (emailRegex.test(email)) {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      } else {
-        $(alertDiv)
-          .text("Email not valid *example@yyy.zzz")
-          .removeClass("d-none");
-      }
-
-      return false;
-    };
-
-    /**
-     * Validate phone number input
-     */
-    const validatePhone = (input, alertDiv) => {
-      const phone = input.value.trim();
-
-      if (phone === "") {
-        $(alertDiv).text("Phone is required.").removeClass("d-none");
-      } else if (phoneRegex.test(phone)) {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      } else {
-        $(alertDiv).text("Enter valid Phone Number").removeClass("d-none");
-      }
-
-      return false;
-    };
-
-    /**
-     * Validate age input (1-200)
-     */
-    const validateAge = (input, alertDiv) => {
-      const age = input.value.trim();
-
-      if (age === "") {
-        $(alertDiv).text("Your age is required.").removeClass("d-none");
-      } else if (ageRegex.test(age)) {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      } else {
-        $(alertDiv).text("Enter valid age.").removeClass("d-none");
-      }
-
-      return false;
-    };
-
-    /**
-     * Validate password (min 8 chars, at least 1 letter and 1 number)
-     */
-    const validatePassword = (input, alertDiv) => {
-      const password = input.value.trim();
-
-      if (password === "") {
-        $(alertDiv).text("Password is required.").removeClass("d-none");
-      } else if (passwordRegex.test(password)) {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      } else {
-        $(alertDiv)
-          .text(
-            "Enter valid password *Minimum eight characters, at least one letter and one number:*"
-          )
-          .removeClass("d-none");
-      }
-
-      return false;
-    };
-
-    /**
-     * Validate password confirmation matches original password
-     */
-    const validateRepassword = (input, password, alertDiv) => {
-      const repassword = $(input).val().trim();
-
-      if (repassword === "") {
-        $(alertDiv).text("Repassword is required.").removeClass("d-none");
-      } else if (repassword !== password) {
-        $(alertDiv).text("Enter valid repassword").removeClass("d-none");
-      } else {
-        $(alertDiv).text("").addClass("d-none");
-        return true;
-      }
-
-      return false;
-    };
-
-    /**
-     * Setup real-time validation for all contact form inputs
-     */
-    /**
-     * Setup real-time validation for all contact form inputs
-     */
-    function handleInputsValidation() {
-      // Validation state flags
-      let nameValid = false;
-      let emailValid = false;
-      let phoneValid = false;
-      let ageValid = false;
-      let passwordValid = false;
-      let repasswordValid = false;
-
-      clearInputs(); // Clear form on initialization
-
-      // Name input validation
-      $("#contactUs #nameInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const nameAlert = $("#contactUs #nameAlert");
-          nameValid = validateName(this, nameAlert);
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-
-      // Email input validation
-      $("#contactUs #emailInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const emailAlert = $("#contactUs #emailAlert");
-          emailValid = validateEmail(this, emailAlert);
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-
-      // Phone input validation
-      $("#contactUs #phoneInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const phoneAlert = $("#contactUs #phoneAlert");
-          phoneValid = validatePhone(this, phoneAlert);
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-
-      // Age input validation
-      $("#contactUs #ageInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const ageAlert = $("#contactUs #ageAlert");
-          ageValid = validateAge(this, ageAlert);
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-
-      // Password input validation
-      $("#contactUs #passwordInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const passwordAlert = $("#contactUs #passwordAlert");
-          passwordValid = validatePassword(this, passwordAlert);
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-
-      // Re-password input validation
-      $("#contactUs #repasswordInput")
-        .off("keyup")
-        .on("keyup", function () {
-          const passwordInputValue = $("#contactUs #passwordInput")
-            .val()
-            .trim();
-          const repasswordAlert = $("#contactUs #repasswordAlert");
-          repasswordValid = validateRepassword(
-            this,
-            passwordInputValue,
-            repasswordAlert
-          );
-          validateForm(
-            nameValid,
-            emailValid,
-            phoneValid,
-            ageValid,
-            passwordValid,
-            repasswordValid
-          );
-        });
-    }
-
-    /**
-     * Enable/disable submit button based on form validity
-     */
-    function validateForm(
-      nameValid,
-      emailValid,
-      phoneValid,
-      ageValid,
-      passwordValid,
-      repasswordValid
-    ) {
-      const $submit = $("#submitBtn");
-      $submit.off("click");
-
-      // Enable submit button only if all fields are valid
-      if (
-        nameValid &&
-        emailValid &&
-        phoneValid &&
-        ageValid &&
-        passwordValid &&
-        repasswordValid
-      ) {
-        $submit.prop("disabled", false).on("click", submitContact);
-      } else {
-        $submit.prop("disabled", true);
-      }
-    }
-
-    /**
-     * Clear all contact form inputs and alerts
-     */
-    function clearInputs() {
-      $("#contactUs input").each(function () {
-        $(this).val("");
-      });
-
-      $("#contactUs .alert").each(function () {
-        $(this).addClass("d-none");
-      });
-    }
-
-    /**
-     * Handle form submission
-     */
-    function submitContact() {
-      clearInputs();
-      alert(
-        "Your message has been successfully submitted. We will get back to you shortly."
+  for (let i = 0; i < 5; i++) {
+    $(".nav-tab .nav-item")
+      .eq(i)
+      .animate(
+        {
+          top: 0,
+        },
+        (i + 5) * 100
       );
-    }
+  }
+}
 
-    // ========== SEARCH FUNCTIONS ==========
+function closeSideNav() {
+  let boxWidth = $(".side-menu .nav-tab").outerWidth();
+  $(".side-menu").animate(
+    {
+      left: -boxWidth,
+    },
+    500
+  );
 
-    /**
-     * Search for meals by name and display results
-     * @param {string} mealName - The name to search for
-     */
-    // ========== SEARCH FUNCTIONS ==========
+  $("#menuToggle").addClass("fa-bars");
+  $("#menuToggle").removeClass("fa-xmark");
 
-    /**
-     * Search for meals by name and display results
-     * @param {string} mealName - The name to search for
-     */
-    async function searchByName(mealName) {
-      $("#dataSearch").html(" ");
-      $("#search .inner-loading-screen").css({ display: "flex" });
+  $(".nav-tab .nav-item").animate(
+    {
+      top: 300,
+    },
+    500
+  );
+}
 
-      const arr = (await getMealByName(mealName)) || [];
-      let htmlContent = "";
+closeSideNav();
+$("#menuToggle").click(() => {
+  if ($(".side-menu").css("left") == "0px") {
+    closeSideNav();
+  } else {
+    openSideNav();
+  }
+});
 
-      // Build meal cards HTML
-      arr.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="meal-details meal position-relative overflow-hidden rounded-2 cursor-pointer" data-id="${item.idMeal}">
-          <img loading="lazy" class="w-100" src="${item.strMealThumb}" alt="${item.strMeal}">
-          <div class="meal-layer position-absolute d-flex align-items-center text-black p-2"><h3>${item.strMeal}</h3></div>
+/* Links Click Handlers */
+$(".nav-tab a").click((e) => {
+  let section = $(e.target).attr("href");
+
+  if (section == "#search") {
+    showSearchInputs();
+  } else if (section == "#categories") {
+    getCategories();
+  } else if (section == "#area") {
+    getArea();
+  } else if (section == "#ingredients") {
+    getIngredients();
+  } else if (section == "#contactUs") {
+    showContacts();
+  }
+
+  closeSideNav();
+});
+
+function displayMeals(arr) {
+  let cartoona = "";
+
+  for (let i = 0; i < arr.length; i++) {
+    cartoona += `
+        <div class="col-md-3">
+                <div onclick="getMealDetails('${arr[i].idMeal}')" class="meal position-relative overflow-hidden rounded-2 cursor-pointer bg-dark">
+                    <img class="w-100" src="${arr[i].strMealThumb}" alt="" srcset="">
+                    <div class="meal-layer position-absolute w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center text-capitalize text-black p-2">
+                        <h3>${arr[i].strMeal}</h3>
+                    </div>
+                </div>
         </div>
-      </div>`;
-      });
+        `;
+  }
 
-      $("#dataSearch").html(htmlContent);
+  rowData.innerHTML = cartoona;
+}
 
-      // Hide loader and attach click events
-      $("#search .inner-loading-screen").fadeOut(500, () => {
-        $(".meal")
-          .off("click")
-          .on("click", async function () {
-            const mealId = $(this).data("id");
-            const mealsdetails = await getMealDetails(mealId);
-            await displayMealDetails(mealsdetails);
-          });
-      });
-    }
+async function getCategories() {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+  searchContainer.innerHTML = "";
 
-    /**
-     * Search for meals by first letter and display results
-     * @param {string} fLetter - The first letter to search for
-     */
-    async function searchByFLetter(fLetter) {
-      $("#dataSearch").html(" ");
-      $("#search .inner-loading-screen").css({ display: "flex" });
+  let response = await fetchCategories();
 
-      const arr = (await getMealByFLetter(fLetter)) || [];
-      let htmlContent = "";
+  displayCategories(response.categories);
+  $(".inner-loading-screen").fadeOut(100);
+}
 
-      // Build meal cards HTML
-      arr.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="meal-details meal position-relative overflow-hidden rounded-2 cursor-pointer" data-id="${item.idMeal}">
-          <img loading="lazy" class="w-100" src="${item.strMealThumb}" alt="${item.strMeal}">
-          <div class="meal-layer position-absolute d-flex align-items-center text-black p-2"><h3>${item.strMeal}</h3></div>
+function displayCategories(arr) {
+  let cartoona = "";
+
+  for (let i = 0; i < arr.length; i++) {
+    cartoona += `
+        <div class="col-md-3">
+                <div onclick="getCategoryMeals('${
+                  arr[i].strCategory
+                }')" class="meal position-relative overflow-hidden rounded-2 cursor-pointer bg-dark">
+                    <img class="w-100" src="${
+                      arr[i].strCategoryThumb
+                    }" alt="" srcset="">
+                    <div class="meal-layer position-absolute w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center text-capitalize text-black p-2">
+                        <h3>${arr[i].strCategory}</h3>
+                        <p>${arr[i].strCategoryDescription
+                          .split(" ")
+                          .slice(0, 20)
+                          .join(" ")}</p>
+                    </div>
+                </div>
         </div>
-      </div>`;
-      });
+        `;
+  }
 
-      $("#dataSearch").html(htmlContent);
+  rowData.innerHTML = cartoona;
+}
 
-      // Hide loader and attach click events
-      $("#search .inner-loading-screen").fadeOut(500, () => {
-        $(".meal")
-          .off("click")
-          .on("click", async function () {
-            const mealId = $(this).data("id");
-            const mealsdetails = await getMealDetails(mealId);
-            await displayMealDetails(mealsdetails);
-          });
-      });
-    }
+async function getArea() {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
 
-    // ========== DISPLAY FUNCTIONS ==========
+  searchContainer.innerHTML = "";
 
-    /**
-     * Fetch and display all meal categories
-     */
-    // ========== DISPLAY FUNCTIONS ==========
+  let respone = await fetchArea();
+  console.log(respone.meals);
 
-    /**
-     * Fetch and display all meal categories
-     */
-    async function displayCategories() {
-      $("#categories .inner-loading-screen").css({ display: "flex" });
-      $("#dataCategories").html("");
+  displayArea(respone.meals);
+  $(".inner-loading-screen").fadeOut(100);
+}
 
-      const arr = (await getListCategories()) || [];
-      let htmlContent = "";
+function displayArea(arr) {
+  let cartoona = "";
 
-      // Build category cards HTML with truncated descriptions
-      arr.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="meal h-100 position-relative overflow-hidden rounded-2 cursor-pointer" data-category="${
-          item.strCategory
-        }">
-          <img loading="lazy" class="d-block w-100" src="${
-            item.strCategoryThumb
-          }" alt="${item.strCategory}">
-          <div class="meal-layer position-absolute text-center text-black p-2 overflow-hidden">
-            <h3>${item.strCategory}</h3>
-            <p>${item.strCategoryDescription
-              .split(" ")
-              .slice(0, 20)
-              .join(" ")}..</p>
-          </div>
+  for (let i = 0; i < arr.length; i++) {
+    cartoona += `
+        <div class="col-md-3">
+                <div onclick="getAreaMeals('${arr[i].strArea}')" class="rounded-2 text-center cursor-pointer">
+                        <i class="fa-solid fa-house-laptop fa-4x"></i>
+                        <h3>${arr[i].strArea}</h3>
+                </div>
         </div>
-      </div>`;
-      });
+        `;
+  }
 
-      $("#dataCategories").html(htmlContent);
+  rowData.innerHTML = cartoona;
+}
 
-      // Hide loader and attach click events to fetch meals by category
-      $("#categories .inner-loading-screen").fadeOut(500, () => {
-        $(".meal")
-          .off("click")
-          .on("click", async function () {
-            const catName = $(this).data("category");
-            const mealsList = (await getCategoryMeals(catName)) || [];
-            await displayMeals(mealsList);
-          });
-      });
-    }
+async function getIngredients() {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
 
-    /**
-     * Fetch and display all available areas/countries
-     */
-    async function displayArea() {
-      $("#area .inner-loading-screen").css({ display: "flex" });
-      $("#dataArea").html("");
+  searchContainer.innerHTML = "";
 
-      const arr = (await getListArea()) || [];
-      let htmlContent = "";
+  let respone = await fetchIngredients();
+  console.log(respone.meals);
 
-      // Build area cards HTML
-      arr.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="area rounded-2 text-center cursor-pointer" data-area="${item.strArea}">
-          <i class="fa-solid fa-house-laptop icon-area"></i>
-          <h3>${item.strArea}</h3>
+  displayIngredients(respone.meals.slice(0, 20));
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+function displayIngredients(arr) {
+  let cartoona = "";
+
+  for (let i = 0; i < arr.length; i++) {
+    cartoona += `
+        <div class="col-md-3">
+                <div onclick="getIngredientsMeals('${
+                  arr[i].strIngredient
+                }')" class="rounded-2 text-center cursor-pointer">
+                        <i class="fa-solid fa-drumstick-bite fa-4x"></i>
+                        <h3>${arr[i].strIngredient}</h3>
+                        <p>${arr[i].strDescription
+                          .split(" ")
+                          .slice(0, 20)
+                          .join(" ")}</p>
+                </div>
         </div>
-      </div>`;
-      });
+        `;
+  }
 
-      $("#dataArea").html(htmlContent);
+  rowData.innerHTML = cartoona;
+}
 
-      // Hide loader and attach click events to fetch meals by area
-      $("#area .inner-loading-screen").fadeOut(500, () => {
-        $(".area")
-          .off("click")
-          .on("click", async function () {
-            const areaName = $(this).data("area");
-            const mealsList = (await getAreaMeals(areaName)) || [];
-            await displayMeals(mealsList);
-          });
-      });
+async function getCategoryMeals(category) {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  let response = await fetchCategoryMeals(category);
+
+  displayMeals(response.meals.slice(0, 20));
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+async function getAreaMeals(area) {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  let response = await fetchAreaMeals(area);
+
+  displayMeals(response.meals.slice(0, 20));
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+async function getIngredientsMeals(ingredients) {
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  let response = await fetchIngredientsMeals(ingredients);
+
+  displayMeals(response.meals.slice(0, 20));
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+async function getMealDetails(mealID) {
+  closeSideNav();
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  searchContainer.innerHTML = "";
+  let respone = await fetchMealDetails(mealID);
+
+  displayMealDetails(respone.meals[0]);
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+function displayMealDetails(meal) {
+  searchContainer.innerHTML = "";
+
+  let ingredients = ``;
+
+  for (let i = 1; i <= 20; i++) {
+    if (meal[`strIngredient${i}`]) {
+      ingredients += `<li class="alert alert-success m-2 p-1 bg-dark text-success border-success">${
+        meal[`strMeasure${i}`]
+      } ${meal[`strIngredient${i}`]}</li>`;
     }
+  }
 
-    /**
-     * Fetch and display meal ingredients (limited to 20)
-     */
-    async function displayIngredients() {
-      $("#ingredients .inner-loading-screen").css({ display: "flex" });
-      $("#dataIngredients").html(" ");
+  let tags = meal.strTags?.split(",");
+  // let tags = meal.strTags.split(",")
+  if (!tags) tags = [];
 
-      const arr = (await getIngredients()) || [];
-      let htmlContent = "";
+  let tagsStr = "";
+  for (let i = 0; i < tags.length; i++) {
+    tagsStr += `
+        <li class="alert alert-danger m-2 p-1 bg-dark text-danger border-danger">${tags[i]}</li>`;
+  }
 
-      // Build ingredient cards HTML with truncated descriptions
-      arr.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="ingredient h-100 p-1 rounded-2 text-center cursor-pointer" data-ingredients="${
-          item.strIngredient
-        }">
-          <i class="fa-solid fa-drumstick-bite icon-ingredients"></i>
-          <h3 class="fs-3 mt-2">${item.strIngredient}</h3>
-          <p class="mb-auto">${item.strDescription
-            .split(" ")
-            .slice(0, 20)
-            .join(" ")}..</p>
-        </div>
-      </div>`;
-      });
-
-      $("#dataIngredients").html(htmlContent);
-
-      // Hide loader and attach click events to fetch meals by ingredient
-      $("#ingredients .inner-loading-screen").fadeOut(500, () => {
-        $(".ingredient")
-          .off("click")
-          .on("click", async function () {
-            const ingredientName = $(this).data("ingredients");
-            const mealsList = (await getIngredientsMeals(ingredientName)) || [];
-            await displayMeals(mealsList);
-          });
-      });
-    }
-
-    /**
-     * Display a list of meals in the main meals section
-     * @param {Array} arr - Array of meal objects to display
-     */
-    /**
-     * Display a list of meals in the main meals section
-     * @param {Array} arr - Array of meal objects to display
-     */
-    async function displayMeals(arr) {
-      const items = arr || [];
-      $("#meals .inner-loading-screen").css({ display: "flex" });
-      $("#dataMeals").html("");
-
-      // Switch to meals section with fade effect
-      $("section").fadeOut(10, () => {
-        $("#meals").fadeIn(100);
-      });
-      $("html, body").animate({ scrollTop: 0 });
-
-      let htmlContent = "";
-
-      // Build meal cards HTML
-      items.forEach((item) => {
-        htmlContent += `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="meal-details meal position-relative overflow-hidden rounded-2 cursor-pointer" data-id="${item.idMeal}">
-          <img loading="lazy" class="w-100" src="${item.strMealThumb}" alt="${item.strMeal}">
-          <div class="meal-layer position-absolute d-flex align-items-center text-black p-2"><h3>${item.strMeal}</h3></div>
-        </div>
-      </div>`;
-      });
-
-      $("#dataMeals").html(htmlContent);
-
-      // Hide loader and attach click events to view meal details
-      $("#meals .inner-loading-screen").fadeOut(500, () => {
-        $(".meal")
-          .off("click")
-          .on("click", async function () {
-            const mealId = $(this).data("id");
-            const mealsdetails = await getMealDetails(mealId);
-            await displayMealDetails(mealsdetails);
-          });
-      });
-    }
-
-    /**
-     * Display detailed information about a specific meal
-     * @param {Object} meal - Meal object containing all details
-     */
-    async function displayMealDetails(meal) {
-      if (!meal) return;
-
-      $("#mealsDetails .inner-loading-screen").css({ display: "flex" });
-      $("#dataMealsDetails").html("");
-
-      // Switch to meal details section with fade effect
-      $("section").fadeOut(10, () => {
-        $("#mealsDetails").fadeIn(100);
-      });
-      $("html, body").animate({ scrollTop: 0 });
-
-      // Build ingredients list (API provides up to 20 ingredients)
-      let ingredients = "";
-      for (let i = 1; i <= 20; i += 1) {
-        if (meal[`strIngredient${i}`]) {
-          ingredients += `<li class="alert alert-info m-2 p-1">${
-            meal[`strMeasure${i}`]
-          } ${meal[`strIngredient${i}`]}</li>`;
-        }
-      }
-
-      // Build tags list (comma-separated tags from API)
-      let tagsStr = "";
-      const tags = meal.strTags?.split(",") || [];
-      tags.forEach((tag) => {
-        tagsStr += `<li class="alert alert-danger m-2 p-1">${tag}</li>`;
-      });
-
-      // Build complete meal details HTML
-      const htmlContent = `
+  let cartoona = `
     <div class="col-md-4">
-      <img loading="lazy" class="d-block w-100 rounded-3" src="${meal.strMealThumb}" alt="${meal.strMeal}">
-      <h2>${meal.strMeal}</h2>
-    </div>
-    <div class="col-md-8">
-      <h2>Instructions</h2>
-      <p>${meal.strInstructions}</p>
-      <h3><span class="fw-bolder">Area : </span>${meal.strArea}</h3>
-      <h3><span class="fw-bolder">Category : </span>${meal.strCategory}</h3>
-      <h3>Recipes :</h3>
-      <ul class="list-unstyled d-flex g-3 flex-wrap">
-        ${ingredients}
-      </ul>
-      <h3>Tags :</h3>
-      <ul class="list-unstyled d-flex g-3 flex-wrap">
-        ${tagsStr}
-      </ul>
-      <a target="_blank" rel="noreferrer" href="${meal.strSource}" class="btn btn-success">Source</a>
-      <a target="_blank" rel="noreferrer" href="${meal.strYoutube}" class="btn btn-danger">Youtube</a>
+                <img class="w-100 rounded-3" src="${meal.strMealThumb}"
+                    alt="">
+                    <h2 class="text-white">${meal.strMeal}</h2>
+            </div>
+            <div class="col-md-8">
+                <h2 class="text-white">Instructions</h2>
+                <p class="text-white">${meal.strInstructions}</p>
+                <h3 class="text-white"><span class="fw-bolder">Area : </span>${meal.strArea}</h3>
+                <h3 class="text-white"><span class="fw-bolder">Category : </span>${meal.strCategory}</h3>
+                <h3 class="text-white">Recipes :</h3>
+                <ul class="list-unstyled d-flex g-3 flex-wrap">
+                    ${ingredients}
+                </ul>
+
+                <h3 class="text-white">Tags :</h3>
+                <ul class="list-unstyled d-flex g-3 flex-wrap">
+                    ${tagsStr}
+                </ul>
+
+                <a target="_blank" href="${meal.strSource}" class="btn btn-success">Source</a>
+                <a target="_blank" href="${meal.strYoutube}" class="btn btn-danger">Youtube</a>
+            </div>`;
+
+  rowData.innerHTML = cartoona;
+}
+
+function showSearchInputs() {
+  searchContainer.innerHTML = `
+    <div class="row py-4 ">
+        <div class="col-md-6 ">
+            <input onkeyup="searchByName(this.value)" class="form-control bg-dark text-white search-input" type="text" placeholder="Search By Name">
+        </div>
+        <div class="col-md-6">
+            <input onkeyup="searchByFLetter(this.value)" maxlength="1" class="form-control bg-dark text-white search-input" type="text" placeholder="Search By First Letter">
+        </div>
     </div>`;
 
-      $("#dataMealsDetails").html(htmlContent);
-      $("#mealsDetails .inner-loading-screen").fadeOut(500);
+  rowData.innerHTML = "";
+}
+
+async function searchByName(term) {
+  closeSideNav();
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  let response = await fetchSearchByName(term);
+
+  response.meals ? displayMeals(response.meals) : displayMeals([]);
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+async function searchByFLetter(term) {
+  closeSideNav();
+  rowData.innerHTML = "";
+  $(".inner-loading-screen").fadeIn(300).css("display", "flex");
+
+  let response = await fetchSearchByFLetter(term);
+
+  response.meals ? displayMeals(response.meals) : displayMeals([]);
+  $(".inner-loading-screen").fadeOut(100);
+}
+
+function showContacts() {
+  rowData.innerHTML = `<div class="contact min-vh-100 d-flex justify-content-center align-items-center">
+    <div class="container w-75 text-center">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <input id="nameInput" onkeyup="inputsValidation()" type="text" class="form-control bg-dark text-white" placeholder="Enter Your Name">
+                <div id="nameAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Special characters and numbers not allowed
+                </div>
+            </div>
+            <div class="col-md-6">
+                <input id="emailInput" onkeyup="inputsValidation()" type="email" class="form-control bg-dark text-white" placeholder="Enter Your Email">
+                <div id="emailAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Email not valid *example@xyz.com
+                </div>
+            </div>
+            <div class="col-md-6">
+                <input id="phoneInput" onkeyup="inputsValidation()" type="text" class="form-control bg-dark text-white" placeholder="Enter Your Phone">
+                <div id="phoneAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Enter valid Phone Number
+                </div>
+            </div>
+            <div class="col-md-6">
+                <input id="ageInput" onkeyup="inputsValidation()" type="number" class="form-control bg-dark text-white" placeholder="Enter Your Age">
+                <div id="ageAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Enter valid age
+                </div>
+            </div>
+            <div class="col-md-6">
+                <input  id="passwordInput" onkeyup="inputsValidation()" type="password" class="form-control bg-dark text-white" placeholder="Enter Your Password">
+                <div id="passwordAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Enter valid password *Minimum eight characters, at least one letter and one number:*
+                </div>
+            </div>
+            <div class="col-md-6">
+                <input  id="repasswordInput" onkeyup="inputsValidation()" type="password" class="form-control bg-dark text-white" placeholder="Repassword">
+                <div id="repasswordAlert" class="alert alert-danger w-100 mt-2 d-none bg-dark text-danger border-danger">
+                    Enter valid repassword 
+                </div>
+            </div>
+        </div>
+        <button id="submitBtn" disabled class="btn btn-outline-danger px-2 mt-3">Submit</button>
+    </div>
+</div> `;
+  submitBtn = document.getElementById("submitBtn");
+
+  document.getElementById("nameInput").addEventListener("focus", () => {
+    nameInputTouched = true;
+  });
+
+  document.getElementById("emailInput").addEventListener("focus", () => {
+    emailInputTouched = true;
+  });
+
+  document.getElementById("phoneInput").addEventListener("focus", () => {
+    phoneInputTouched = true;
+  });
+
+  document.getElementById("ageInput").addEventListener("focus", () => {
+    ageInputTouched = true;
+  });
+
+  document.getElementById("passwordInput").addEventListener("focus", () => {
+    passwordInputTouched = true;
+  });
+
+  document.getElementById("repasswordInput").addEventListener("focus", () => {
+    repasswordInputTouched = true;
+  });
+}
+
+let nameInputTouched = false;
+let emailInputTouched = false;
+let phoneInputTouched = false;
+let ageInputTouched = false;
+let passwordInputTouched = false;
+let repasswordInputTouched = false;
+
+function inputsValidation() {
+  if (nameInputTouched) {
+    if (nameValidation()) {
+      document
+        .getElementById("nameAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("nameAlert")
+        .classList.replace("d-none", "d-block");
     }
-
-    // ========== API FUNCTIONS ==========
-    // Base URL for TheMealDB API
-    const baseURL = "https://www.themealdb.com/api/json/v1/1";
-
-    /**
-     * Fetch detailed information about a specific meal by ID
-     * @param {string} mealID - The unique meal ID
-     * @returns {Object|null} Meal object or null if error/not found
-     */
-    async function getMealDetails(mealID) {
-      try {
-        const response = await fetch(`${baseURL}/lookup.php?i=${mealID}`);
-        const data = await response.json();
-        return data.meals?.[0] || null; // Return first meal or null
-      } catch (err) {
-        console.error("error getMealDetails: ==>", err);
-        return null;
-      }
+  }
+  if (emailInputTouched) {
+    if (emailValidation()) {
+      document
+        .getElementById("emailAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("emailAlert")
+        .classList.replace("d-none", "d-block");
     }
+  }
 
-    /**
-     * Search for meals by name
-     * @param {string} mealName - Name or partial name of meal
-     * @returns {Array} Array of matching meals or empty array
-     */
-    async function getMealByName(mealName) {
-      try {
-        const response = await fetch(`${baseURL}/search.php?s=${mealName}`);
-        const data = await response.json();
-        return data.meals || [];
-      } catch (err) {
-        console.error("error getMealByName: ==>", err);
-        return [];
-      }
+  if (phoneInputTouched) {
+    if (phoneValidation()) {
+      document
+        .getElementById("phoneAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("phoneAlert")
+        .classList.replace("d-none", "d-block");
     }
+  }
 
-    /**
-     * Search for meals by first letter
-     * @param {string} fLetter - Single letter to search by
-     * @returns {Array} Array of matching meals or empty array
-     */
-    async function getMealByFLetter(fLetter) {
-      try {
-        const response = await fetch(`${baseURL}/search.php?f=${fLetter}`);
-        const data = await response.json();
-        return data.meals || [];
-      } catch (err) {
-        console.error("error getMealByFLetter: ==>", err);
-        return [];
-      }
+  if (ageInputTouched) {
+    if (ageValidation()) {
+      document
+        .getElementById("ageAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("ageAlert")
+        .classList.replace("d-none", "d-block");
     }
+  }
 
-    /**
-     * Fetch all available meal categories
-     * @returns {Array} Array of category objects or empty array
-     */
-    async function getListCategories() {
-      try {
-        const response = await fetch(`${baseURL}/categories.php`);
-        const data = await response.json();
-        return data.categories || [];
-      } catch (err) {
-        console.error("error getListCategories: ==>", err);
-        return [];
-      }
+  if (passwordInputTouched) {
+    if (passwordValidation()) {
+      document
+        .getElementById("passwordAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("passwordAlert")
+        .classList.replace("d-none", "d-block");
     }
-
-    /**
-     * Fetch meals by category (limited to 20 results)
-     * @param {string} category - Category name
-     * @returns {Array} Array of meals or empty array
-     */
-    async function getCategoryMeals(category) {
-      try {
-        const response = await fetch(`${baseURL}/filter.php?c=${category}`);
-        const data = await response.json();
-        return (data.meals || []).slice(0, 20); // Limit to 20 meals
-      } catch (err) {
-        console.error("error getCategoryMeals: ==>", err);
-        return [];
-      }
+  }
+  if (repasswordInputTouched) {
+    if (repasswordValidation()) {
+      document
+        .getElementById("repasswordAlert")
+        .classList.replace("d-block", "d-none");
+    } else {
+      document
+        .getElementById("repasswordAlert")
+        .classList.replace("d-none", "d-block");
     }
+  }
 
-    /**
-     * Fetch all available areas/countries
-     * @returns {Array} Array of area objects or empty array
-     */
-    async function getListArea() {
-      try {
-        const response = await fetch(`${baseURL}/list.php?a=list`);
-        const data = await response.json();
-        return data.meals || [];
-      } catch (err) {
-        console.error("error getListArea: ==>", err);
-        return [];
-      }
-    }
+  if (
+    nameValidation() &&
+    emailValidation() &&
+    phoneValidation() &&
+    ageValidation() &&
+    passwordValidation() &&
+    repasswordValidation()
+  ) {
+    submitBtn.removeAttribute("disabled");
+  } else {
+    submitBtn.setAttribute("disabled", true);
+  }
+}
 
-    /**
-     * Fetch meals by area/country (limited to 20 results)
-     * @param {string} area - Area/country name
-     * @returns {Array} Array of meals or empty array
-     */
-    async function getAreaMeals(area) {
-      try {
-        const response = await fetch(`${baseURL}/filter.php?a=${area}`);
-        const data = await response.json();
-        return (data.meals || []).slice(0, 20); // Limit to 20 meals
-      } catch (err) {
-        console.error("error getAreaMeals: ==>", err);
-        return [];
-      }
-    }
+function nameValidation() {
+  return /^[a-zA-Z ]+$/.test(document.getElementById("nameInput").value);
+}
 
-    /**
-     * Fetch list of ingredients (limited to 20 results)
-     * @returns {Array} Array of ingredient objects or empty array
-     */
-    async function getIngredients() {
-      try {
-        const response = await fetch(`${baseURL}/list.php?i=list`);
-        const data = await response.json();
-        return (data.meals || []).slice(0, 20); // Limit to 20 ingredients
-      } catch (err) {
-        console.error("error getIngredients: ==>", err);
-        return [];
-      }
-    }
+function emailValidation() {
+  return /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+    document.getElementById("emailInput").value
+  );
+}
 
-    /**
-     * Fetch meals by ingredient (limited to 20 results)
-     * @param {string} ingredients - Ingredient name
-     * @returns {Array} Array of meals or empty array
-     */
-    async function getIngredientsMeals(ingredients) {
-      try {
-        const response = await fetch(`${baseURL}/filter.php?i=${ingredients}`);
-        const data = await response.json();
-        return (data.meals || []).slice(0, 20); // Limit to 20 meals
-      } catch (err) {
-        console.error("error getIngredientsMeals: ==>", err);
-        return [];
-      }
-    }
+function phoneValidation() {
+  return /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test(
+    document.getElementById("phoneInput").value
+  );
+}
 
-    // ========== LOADER CLEANUP ==========
-    // Handle transition end event to remove loader from DOM
-    const onTransitionEnd = (e) => {
-      if (e.propertyName !== "opacity") return;
-      loader.removeEventListener("transitionend", onTransitionEnd);
+function ageValidation() {
+  return /^(0?[1-9]|[1-9][0-9]|[1][1-9][1-9]|200)$/.test(
+    document.getElementById("ageInput").value
+  );
+}
 
-      // Remove loader element from DOM
-      if (loader.parentNode) loader.parentNode.removeChild(loader);
+function passwordValidation() {
+  return /^(?=.*\d)(?=.*[a-z])[0-9a-zA-Z]{8,}$/.test(
+    document.getElementById("passwordInput").value
+  );
+}
 
-      // Restore scrolling (clear inline style so stylesheet can control it)
-      document.body.style.overflow = "";
-    };
+function repasswordValidation() {
+  return (
+    document.getElementById("repasswordInput").value ==
+    document.getElementById("passwordInput").value
+  );
+}
 
-    loader.addEventListener("transitionend", onTransitionEnd);
-  }, 500);
-});
+// Expose functions to global scope for inline event handlers
+window.getMealDetails = getMealDetails;
+window.getCategoryMeals = getCategoryMeals;
+window.getAreaMeals = getAreaMeals;
+window.getIngredientsMeals = getIngredientsMeals;
+window.searchByName = searchByName;
+window.searchByFLetter = searchByFLetter;
+window.inputsValidation = inputsValidation;
